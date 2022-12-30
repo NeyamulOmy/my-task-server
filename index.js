@@ -15,29 +15,67 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         const myTasksCollection = client.db('my-task').collection('my-tasks');
-        const completedTasksCollection = client.db('my-task').collection('completed-tasks')
+
 
         app.post('/mytasks', async (req, res) => {
             const mytask = req.body;
             const result = await myTasksCollection.insertOne(mytask);
             res.send(result);
         })
-        app.post('/completedtasks', async (req, res) => {
-            const completedtask = req.body;
-            const result = await completedTasksCollection.insertOne(completedtask);
-            res.send(result);
-        })
+
 
         app.get('/completedtasks', async (req, res) => {
-            const query = {};
-            const completedtasks = await completedTasksCollection.find(query).toArray();
+            const email = req.query.email;
+            const query = { email: email, type: 'complete' };
+            const completedtasks = await myTasksCollection.find(query).toArray();
             res.send(completedtasks);
         })
         app.get('/mytasks', async (req, res) => {
             const email = req.query.email;
-            const query = { email: email }
+            const query = { email: email, type: 'incomplete' }
             const mytasks = await myTasksCollection.find(query).toArray();
             res.send(mytasks);
+        })
+        app.get('/mytasks/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await myTasksCollection.findOne(query);
+            res.send(result);
+        })
+        app.put('/mytasks/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    type: 'complete'
+                }
+            }
+            const result = await myTasksCollection.updateOne(filter, updatedDoc, options);
+            res.send(result);
+        })
+        app.put('/completedtasks/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    type: 'incomplete'
+                }
+            }
+            const result = await myTasksCollection.updateOne(filter, updatedDoc, options);
+            res.send(result);
+        })
+        app.patch('/mytasks/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updates = req.body;
+            const updatedDoc = {
+                $set: updates
+            }
+            const result = await myTasksCollection.updateOne(filter, updatedDoc, options);
+            res.send(result);
         })
         app.delete('/mytasks/:id', async (req, res) => {
             const id = req.params.id;
